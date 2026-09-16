@@ -2,7 +2,7 @@ name: CI/CD
 
 on:
   push:
-    branches: [main, development]
+    branches: [main]
 
 jobs:
   build:
@@ -41,6 +41,8 @@ jobs:
           username: ${{ secrets.EC2_USER }}
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
+            set -e
+            echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
             docker pull joyboy21110/fastapi-intro:latest
             docker stop $(docker ps -q) || true
             docker rm $(docker ps -aq) || true
