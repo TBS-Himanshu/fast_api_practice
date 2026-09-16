@@ -19,6 +19,12 @@ app = FastAPI()
 app.include_router(router)
 app.include_router(item_router)
 app.include_router(log_router)
+@app.get('/test')
+def test_api():
+    return {
+        "status": 200,
+        "message": 'Test API is working !!'
+    }
 app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 
 app.add_middleware(LoggingMiddleware)
