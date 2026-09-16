@@ -1,0 +1,47 @@
+name: CI/CD
+
+on:
+  push:
+    branches: [main, development]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # placeholder — pytest step slots in right here later, unchanged otherwise
+      - name: Run tests
+        run: echo "no tests yet — placeholder"
+
+      - name: Log in to Docker Hub
+        if: github.ref == 'refs/heads/main'
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build and push image
+        if: github.ref == 'refs/heads/main'
+        run: |
+          docker build -t joyboy21110/fastapi-intro:${{ github.sha }} -t joyboy21110/fastapi-intro:latest .
+          docker push joyboy21110/fastapi-intro:${{ github.sha }}
+          docker push joyboy21110/fastapi-intro:latest
+
+  deploy:
+    needs: build
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - name: SSH and redeploy on EC2
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            docker pull joyboy21110/fastapi-intro:latest
+            docker stop $(docker ps -q) || true
+            docker rm $(docker ps -aq) || true
+            docker run -d -p 8000:8000 --env-file .env joyboy21110/fastapi-intro:latest
